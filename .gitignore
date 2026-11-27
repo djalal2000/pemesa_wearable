@@ -1,0 +1,31 @@
+# Android Studio
+.idea/
+*.iml
+.gradle/
+local.properties
+
+# Build
+build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.log
+*.apk
+*.aab
+
+# Signing and secrets
+*.jks
+*.keystore
+keystore.properties
+.env
+.env.*
+!.env.example
+
+# Operating system
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# VS Code
+.vscode/
