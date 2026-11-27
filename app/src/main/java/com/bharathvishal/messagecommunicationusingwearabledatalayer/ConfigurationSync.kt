@@ -45,6 +45,7 @@ internal object ConfigurationSync {
         withContext(Dispatchers.IO) {
             mutex.withLock {
                 val registry = WatchRegistry(context)
+                if (requestedNode == null && !forStart && registry.pinned == null) discoverWatches(context)
                 val node = requestedNode ?: registry.target ?: return@withLock ConfigSyncResult.OFFLINE
                 if (registry.target != node || (!forStart && registry.pinned != null)) return@withLock ConfigSyncResult.BUSY
                 val watch = registry.list().firstOrNull { it.node == node } ?: return@withLock ConfigSyncResult.OFFLINE

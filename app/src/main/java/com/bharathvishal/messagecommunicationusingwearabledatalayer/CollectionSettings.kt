@@ -43,11 +43,15 @@ internal fun ServerSettings(language: String) {
     val context = LocalContext.current
     val prefs = remember(context) { CollectionPreferences(context) }
     fun t(en: String, fr: String) = if (language == AppLanguage.FRENCH) fr else en
-    var url by remember { mutableStateOf(prefs.url) }
-    var org by remember { mutableStateOf(prefs.organization) }
+    var url by remember { mutableStateOf(if (prefs.custom) prefs.url else BuildConfig.PEMESA_INFLUX_URL) }
+    var org by remember { mutableStateOf(if (prefs.custom) prefs.organization else BuildConfig.PEMESA_INFLUX_ORG) }
     var activity by remember { mutableStateOf(prefs.activity) }
     var wearable by remember { mutableStateOf(prefs.wearable) }
-    var token by remember { mutableStateOf("") }
+    fun defaultToken(url: String, org: String): String =
+        if (validServerUrl(url.trim()) && url.trim() == BuildConfig.PEMESA_INFLUX_URL &&
+            org.trim().isNotBlank() && org.trim() == BuildConfig.PEMESA_INFLUX_ORG)
+            BuildConfig.PEMESA_INFLUX_TOKEN else ""
+    var token by remember { mutableStateOf(if (prefs.hasToken) "" else defaultToken(url, org)) }
     var savedToken by remember { mutableStateOf(prefs.hasToken) }
     var savedTarget by remember { mutableStateOf(ServerTarget(prefs.url, prefs.organization, prefs.activity, prefs.wearable)) }
     var history by remember { mutableStateOf(ServerHistorySuggestions()) }
@@ -60,7 +64,11 @@ internal fun ServerSettings(language: String) {
     LaunchedEffect(Unit) { history = withContext(Dispatchers.IO) { prefs.serverHistory() } }
     val target = ServerTarget(url.trim(), org.trim(), activity.trim(), wearable.trim())
     val canKeepToken = savedToken && target == savedTarget
-    fun destinationChanged() { tokenVisible = false; token = "" }
+    fun destinationChanged() {
+        tokenVisible = false
+        val destination = ServerTarget(url.trim(), org.trim(), activity.trim(), wearable.trim())
+        token = if (savedToken && destination == savedTarget) "" else defaultToken(url, org)
+    }
     val historyLabel = t("Previous values", "Valeurs précédentes")
     Text(if (custom) t("Custom server", "Serveur personnalisé") else t("Server not configured", "Serveur non configuré"),
         style = MaterialTheme.typography.titleMedium)
@@ -80,6 +88,7 @@ internal fun ServerSettings(language: String) {
             }
         },
         supportingText = { Text(if (canKeepToken) t("Leave blank to keep saved token", "Laisser vide pour conserver le jeton")
+            else if (token.isNotBlank() && token == defaultToken(url, org)) t("Default write token (masked)", "Jeton d’écriture par défaut (masqué)")
             else t("Write token required for this destination", "Jeton d’écriture requis pour cette destination")) },
         modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp))
     Button(modifier = Modifier.fillMaxWidth(), enabled = !busy && validServerUrl(url.trim()) &&

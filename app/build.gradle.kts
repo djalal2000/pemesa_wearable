@@ -1,9 +1,20 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.jetbrains.kotlin.kapt)
 }
+
+// Optional local build configuration (local.properties is ignored by Git).
+val pemesaLocal = Properties().apply {
+    rootProject.file("local.properties").takeIf { it.isFile }?.inputStream()?.use { load(it) }
+}
+fun pemesaSetting(name: String): String =
+    providers.environmentVariable(name).orNull ?: pemesaLocal.getProperty(name, "")
+fun quotedBuildValue(value: String): String = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"")
+    .replace("\r", "\\r").replace("\n", "\\n") + "\""
 
 android {
     namespace = "com.bharathvishal.messagecommunicationusingwearabledatalayer"
@@ -17,9 +28,13 @@ android {
         targetSdk = 36
         versionCode = 119
         versionName = "3.9.2"
+        buildConfigField("String", "PEMESA_INFLUX_URL", quotedBuildValue(pemesaSetting("PEMESA_INFLUX_URL").trim()))
+        buildConfigField("String", "PEMESA_INFLUX_ORG", quotedBuildValue(pemesaSetting("PEMESA_INFLUX_ORG").trim()))
+        buildConfigField("String", "PEMESA_INFLUX_TOKEN", quotedBuildValue(pemesaSetting("PEMESA_INFLUX_TOKEN").trim()))
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures {
+        buildConfig = true
         viewBinding = true
         compose = true
     }

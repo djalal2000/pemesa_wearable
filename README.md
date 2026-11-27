@@ -145,7 +145,19 @@ In **Settings > InfluxDB**, enter the HTTPS server URL, organization, activity b
 
 Inertial samples retain their acquisition timestamp, activity label, participant identifier, session identifier, watch identifier, and sequence number.
 
-The active API token is encrypted using Android Keystore-backed encryption. No default server credentials are embedded in the current application source. Use a dedicated write token and a separate read token for analysis. Revoke any previously committed credentials before distributing the repository or APKs.
+The active API token is encrypted using Android Keystore-backed encryption. To prefill the InfluxDB form for a controlled internal build, add these values to the ignored root `local.properties` (or set the same environment variables before compiling):
+
+```properties
+PEMESA_INFLUX_URL=https://your-server
+PEMESA_INFLUX_ORG=your-organization
+PEMESA_INFLUX_TOKEN=your-write-only-token
+```
+
+The default is restricted to the configured HTTPS URL and organization. Save the form once to confirm the settings. Without these build values, manual entry remains available. Never commit real tokens. A token included in an APK is extractable even if masked in the UI; use this option only for controlled internal APK distribution with a dedicated, restricted write token. Public APKs should omit it and use separate credentials or a backend.
+
+### Watch detection
+
+Connect the Wear OS watch to Android normally and open PEMESA on both devices. PEMESA automatically lists connected Wear OS devices and selects the single responding watch, if there is only one. With multiple responding watches, choose the recording watch in **Settings > Smartwatch management**. No PEMESA pairing code is required. Selection stays locked until Stop is confirmed for the recording watch. Update both APKs together.
 
 ### Connection Interruptions
 

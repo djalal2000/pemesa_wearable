@@ -9,6 +9,10 @@ internal data class RegisteredWatch(val node: String, val id: String, val name: 
 internal fun selectedReachableNode(selected: String?, pinned: String?, reachable: Collection<String>): String? =
     (pinned ?: selected)?.takeIf { it in reachable }
 
+/** Auto-select only an unambiguous single ready watch; never switch a pinned recording. */
+internal fun detectedSelection(selected: String?, pinned: String?, ready: Collection<String>): String? =
+    if (pinned != null) selected else selected?.takeIf { it in ready } ?: ready.singleOrNull()
+
 /** Configuration only. A pending or uncertain Start pins its destination across activity recreation. */
 internal class WatchRegistry(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences("pemesa_watches_v1", Context.MODE_PRIVATE)
@@ -28,14 +32,18 @@ internal class WatchRegistry(context: Context) {
     private fun encoded(items: List<RegisteredWatch>): String = JSONArray().apply {
         items.forEach { put(JSONObject().put("node", it.node).put("id", it.id).put("name", it.name).put("seen", it.lastSeen)) }
     }.toString()
-    fun register(node: String, id: String, name: String): Boolean = synchronized(lock) {
-        if (pinned != null || node.isBlank() || runCatching { java.util.UUID.fromString(id) }.isFailure) return false
+    fun updateDetected(detected: List<RegisteredWatch>) = synchronized(lock) {
         val old = list()
-        val same = old.firstOrNull { it.id == id }
-        val item = RegisteredWatch(node, id, same?.name ?: name.take(60), System.currentTimeMillis())
-        val next = old.filterNot { it.node == node || it.id == id } + item
-        if (next.size > 50) return false
-        prefs.edit().putString("watches", encoded(next)).putString("selected", node).commit()
+        val pin = pinned
+        val next = detected.distinctBy { it.node }.mapNotNull { item ->
+            if (pin == item.node && old.any { it.node == pin && it.id != item.id }) null
+            else item
+        }.toMutableList()
+        if (pin != null && next.none { it.node == pin }) old.firstOrNull { it.node == pin }?.let { next.add(it) }
+        val choice = detectedSelection(selected, pin, detected.map { it.node }.distinct())
+        val editor = prefs.edit().putString("watches", encoded(next))
+        if (choice == null) editor.remove("selected") else editor.putString("selected", choice)
+        editor.commit()
     }
     fun select(node: String): Boolean = synchronized(lock) {
         pinned == null && list().any { it.node == node } && prefs.edit().putString("selected", node).commit()

@@ -131,8 +131,6 @@ class WearCommunicationManager(
 
     private val devicePrefs = context.getSharedPreferences("pemesa_watch_identity", Context.MODE_PRIVATE)
     private val watchId: String = devicePrefs.getString("id", null) ?: UUID.randomUUID().toString().also { devicePrefs.edit().putString("id", it).apply() }
-    private val pairing = PairingChallenge(clock = { android.os.SystemClock.elapsedRealtime() })
-    private var pairDialog: androidx.appcompat.app.AlertDialog? = null
     private fun authorized(node: String): Boolean = devicePrefs.getString("owner", null) == node
 
     private val transmit = TransmissionService(
@@ -152,7 +150,6 @@ class WearCommunicationManager(
 
     fun close() {
         thermalMonitor.close()
-        pairing.cancel(); pairDialog?.dismiss(); pairDialog = null
         commandHandler.removeCallbacksAndMessages(null)
         HealthJournal.add(HealthCode.STOP_OK)
         controlScope.cancel()
@@ -248,56 +245,26 @@ class WearCommunicationManager(
 
     private fun associationBusy(): Boolean = sensorTimer != null || startJob?.isActive == true || configJob?.isActive == true || transmit.pendingCount() > 0L
 
-    fun showPairingCode() {
-        if (associationBusy()) {
-            android.widget.Toast.makeText(context, "Stop recording and wait for pending writes", android.widget.Toast.LENGTH_SHORT).show()
-            return
-        }
-        pairDialog?.dismiss()
-        val code = pairing.open()
-        val dialog = androidx.appcompat.app.AlertDialog.Builder(context)
-            .setTitle("PEMESA pairing")
-            .setMessage("Enter this code on your phone:\n\n$code\n\nValid for 2 minutes")
-            .setNegativeButton("Cancel", null).create()
-        pairDialog = dialog
-        dialog.setOnDismissListener { if (pairDialog === dialog) { pairing.cancel(); pairDialog = null } }
-        dialog.show()
-        commandHandler.postDelayed({ if (pairDialog === dialog) dialog.dismiss() }, 120000L)
-    }
-
     private fun receiveDeviceRequest(node: String, message: String) {
-        commandHandler.post {
-            val request = runCatching { org.json.JSONObject(message) }.getOrNull() ?: return@post
-            val id = request.optString("id")
-            if (runCatching { UUID.fromString(id) }.isFailure) return@post
-            val reply = org.json.JSONObject().put("id", id)
-            when (request.optString("action")) {
-                "info" -> {
-                    val battery = context.getSystemService(Context.BATTERY_SERVICE) as? android.os.BatteryManager
-                    reply.put("watchId", watchId).put("associated", authorized(node))
-                        .put("battery", battery?.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1)
+        val request = runCatching { org.json.JSONObject(message) }.getOrNull() ?: return
+        val id = request.optString("id")
+        if (runCatching { UUID.fromString(id) }.isFailure || request.optString("action") != "info") return
+        // Trust only an existing connected Data Layer peer. Do not transfer ownership
+        // from a reachable controller or while collecting or flushing measurements.
+        Wearable.getNodeClient(context).connectedNodes.addOnSuccessListener { nodes ->
+            commandHandler.post {
+                if (!controlScope.isActive || nodes.none { it.id == node }) return@post
+                val owner = devicePrefs.getString("owner", null)
+                if (!authorized(node) && !associationBusy() &&
+                    (owner == null || nodes.none { it.id == owner })) {
+                    devicePrefs.edit().putString("owner", node).commit()
                 }
-                "pair" -> {
-                    val ok = !associationBusy() && pairing.verify(request.optString("code")) &&
-                        devicePrefs.edit().putString("owner", node).commit()
-                    reply.put("ok", ok)
-                    if (ok) {
-                        reply.put("watchId", watchId)
-                        pairDialog?.dismiss()
-                        android.widget.Toast.makeText(context, "PEMESA associated", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                }
-                "identify" -> {
-                    val ok = authorized(node)
-                    if (ok) {
-                        binding.root.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS)
-                        android.widget.Toast.makeText(context, "PEMESA: this is your selected watch", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                    reply.put("ok", ok)
-                }
-                else -> return@post
+                val battery = context.getSystemService(Context.BATTERY_SERVICE) as? android.os.BatteryManager
+                val reply = org.json.JSONObject().put("id", id).put("watchId", watchId)
+                    .put("associated", authorized(node))
+                    .put("battery", battery?.getIntProperty(android.os.BatteryManager.BATTERY_PROPERTY_CAPACITY) ?: -1)
+                Wearable.getMessageClient(context).sendMessage(node, "/pemesa/device-v1", reply.toString().toByteArray(Charsets.UTF_8))
             }
-            Wearable.getMessageClient(context).sendMessage(node, "/pemesa/device-v1", reply.toString().toByteArray(StandardCharsets.UTF_8))
         }
     }
 
