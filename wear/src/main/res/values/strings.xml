@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">PEMESA</string>
+    <string name="message_log">Message log</string>
+    <string name="init">...</string>
+    <string name="mobile_device_is_connected">Waiting for mobile connection</string>
+</resources>

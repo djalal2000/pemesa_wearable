@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <attr name="CardBGColor" format="reference|color" />
+    <attr name="TextInfoColor" format="reference|color" />
+    <attr name="TextViewHeaderColor" format="reference|color" />
+</resources>

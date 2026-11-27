@@ -1,0 +1,14 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_home"
+        android:icon="@drawable/ic_home"
+        android:title="" />
+    <item
+        android:id="@+id/action_refresh_connection"
+        android:icon="@drawable/ic_refresh"
+        android:title="" />
+    <item
+        android:id="@+id/action_show_connected_devices"
+        android:icon="@drawable/ic_pemesa_round_watch"
+        android:title="" />
+</menu>

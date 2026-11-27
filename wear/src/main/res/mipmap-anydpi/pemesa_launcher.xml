@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <size android:width="48dp" android:height="48dp" />
+            <corners android:radius="10dp" />
+            <gradient android:type="linear" android:angle="315" android:startColor="#075792" android:centerColor="#063B70" android:endColor="#042C54" />
+            <stroke android:width="1dp" android:color="#1678B4" />
+        </shape>
+    </item>
+    <item android:drawable="@drawable/pemesa_launcher_mark" />
+</layer-list>
