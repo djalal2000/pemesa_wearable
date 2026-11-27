@@ -133,7 +133,7 @@ internal fun SettingsScreen(language: String, onBack: () -> Unit, onLanguageClic
                         title = tr("Select Language"), subtitle = AppLanguage.languageName(language),
                         icon = Icons.Filled.Language, onClick = onLanguageClick
                     )
-                    SettingsRow(title = ui("Smartwatch management", "Gestion des montres"), subtitle = ui("Pair and select a research watch", "Associer et sélectionner une montre"),
+                    SettingsRow(title = ui("Smartwatch management", "Gestion des montres"), subtitle = ui("Detect connected Wear OS watches", "Détecter les montres Wear OS connectées"),
                         icon = Icons.Filled.Watch, onClick = { selectedCode = "watches" })
                     SectionHeading(ui("Data collection", "Collecte des données"))
                     SettingsRow(title = "InfluxDB", subtitle = ui("Server, organization, buckets and API token", "Serveur, organisation, buckets et jeton API"),

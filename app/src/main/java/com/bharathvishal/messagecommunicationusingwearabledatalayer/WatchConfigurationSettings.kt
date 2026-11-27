@@ -53,7 +53,7 @@ internal fun WatchConfigurationSettings(language: String) {
                     "CONFIRMED" -> t("Configuration confirmed by the watch", "Configuration confirmée par la montre")
                     "DIFFERENT" -> t("Not synchronized — watch has different or missing settings", "Non synchronisée — réglages différents ou absents sur la montre")
                     "OFFLINE" -> t("Not confirmed — watch did not reply", "Non confirmée — la montre ne répond pas")
-                    "NO_WATCH" -> t("Not confirmed — select an associated watch", "Non confirmée — sélectionnez une montre associée")
+                    "NO_WATCH" -> t("Not confirmed — select a connected watch", "Non confirmée — sélectionnez une montre connectée")
                     "BUSY" -> t("Not confirmed — watch busy", "Non confirmée — montre occupée")
                     "CHANGED" -> t("Settings or watch changed — check again", "Réglages ou montre modifiés — vérifiez à nouveau")
                     else -> t("Configuration not confirmed", "Configuration non confirmée")
