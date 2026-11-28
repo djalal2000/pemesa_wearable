@@ -8,6 +8,7 @@ import android.view.WindowManager
 import android.widget.SeekBar
 import android.widget.Button
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -234,6 +235,11 @@ class ValidationActivity : AppCompatActivity() {
         setupBottomNavigation()
         applyUiDesign()
         if (WatchRegistry(this).pinned != null) markCommandUncertain()
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (canLeaveCollectionScreen()) finish()
+            }
+        })
     }
 
     override fun onResume() {
@@ -276,6 +282,40 @@ class ValidationActivity : AppCompatActivity() {
 
     private fun commandNotice(english: String, french: String) {
         Toast.makeText(this, commandText(english, french), Toast.LENGTH_LONG).show()
+    }
+
+    private var exitWarningToast: Toast? = null
+    private var lastExitWarningAt: Long? = null
+
+    /** Never leave the recording screen while a session may still be running. */
+    private fun canLeaveCollectionScreen(): Boolean {
+        val sessionMayBeActive = isRecording || isPaused || commandUncertain ||
+            WatchRegistry(this).pinned != null
+        if (!sessionMayBeActive && !commandPending) {
+            exitWarningToast?.cancel()
+            exitWarningToast = null
+            lastExitWarningAt = null
+            return true
+        }
+        // Repeated Back presses must not queue identical warnings.
+        val now = android.os.SystemClock.elapsedRealtime()
+        if (lastExitWarningAt?.let { now - it < 2000L } != true) {
+            lastExitWarningAt = now
+            exitWarningToast?.cancel()
+            val message = when {
+                commandUncertain -> commandText(
+                    "Recording state unknown. Confirm Stop on the watch before leaving.",
+                    "État de la collecte inconnu. Confirmez l’arrêt sur la montre avant de quitter.")
+                sessionMayBeActive -> commandText(
+                    "Recording in progress. Stop recording before leaving.",
+                    "Collecte en cours. Arrêtez la collecte avant de quitter.")
+                else -> commandText(
+                    "Waiting for the watch. Please try again after confirmation.",
+                    "Confirmation de la montre en cours. Réessayez après la confirmation.")
+            }
+            exitWarningToast = Toast.makeText(this, message, Toast.LENGTH_LONG).also { it.show() }
+        }
+        return false
     }
 
     private fun markCommandUncertain() {
@@ -562,19 +602,14 @@ class ValidationActivity : AppCompatActivity() {
                     true
                 }
                 R.id.action_home -> {
-                    val goHome = {
+                    if (!canLeaveCollectionScreen()) {
+                        false
+                    } else {
                         val intent = Intent(this, MainActivity::class.java)
                         intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
                         startActivity(intent)
+                        true
                     }
-                    if (commandPending) {
-                        commandNotice("Waiting for the watch", "Confirmation de la montre en cours")
-                    } else if (isRecording || commandUncertain) {
-                        stopRecording(goHome)
-                    } else {
-                        goHome()
-                    }
-                    true
                 }
                 else -> false
             }
