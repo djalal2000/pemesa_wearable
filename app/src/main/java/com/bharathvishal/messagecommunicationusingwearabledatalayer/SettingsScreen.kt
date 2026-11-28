@@ -86,7 +86,7 @@ internal fun SettingsScreen(language: String, onBack: () -> Unit, onLanguageClic
     val title = when (code) {
         null -> tr("Settings")
         "watches" -> ui("Smartwatch management", "Gestion des montres")
-        "watch_config" -> ui("Watch configuration", "Configuration de la montre")
+        "watch_config" -> "InfluxDB"
         "server" -> "InfluxDB"
         "sensors" -> ui("Sensors", "Capteurs")
         "professions" -> ui("Professions & activities", "Métiers et activités")
@@ -142,8 +142,6 @@ internal fun SettingsScreen(language: String, onBack: () -> Unit, onLanguageClic
                         icon = Icons.Filled.Tune, onClick = { selectedCode = "sensors" })
                     SettingsRow(title = ui("Acquisition", "Acquisition"), subtitle = ui("Sampling and transmission", "Fréquence et transmission"),
                         icon = Icons.Filled.Tune, onClick = { selectedCode = "acquisition" })
-                    SettingsRow(title = ui("Watch configuration", "Configuration de la montre"), subtitle = ui("Saved settings and watch confirmation", "Réglages enregistrés et confirmation de la montre"),
-                        icon = Icons.Filled.Watch, onClick = { selectedCode = "watch_config" })
                     SectionHeading(ui("Customization", "Personnalisation"))
                     SettingsRow(
                         title = ui("Professions & activities", "Métiers et activités"),
@@ -173,10 +171,8 @@ internal fun SettingsScreen(language: String, onBack: () -> Unit, onLanguageClic
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 } else if (code == "watches") {
                     SmartwatchSettings(language)
-                } else if (code == "watch_config") {
-                    WatchConfigurationSettings(language)
-                } else if (code == "server") {
-                    ServerSettings(language)
+                } else if (code == "server" || code == "watch_config") {
+                    ServerSettings(language, onDiagnostics = { selectedCode = "diagnostics" })
                 } else if (code == "sensors") {
                     SensorSettings(language)
                 } else if (code == "storage") {

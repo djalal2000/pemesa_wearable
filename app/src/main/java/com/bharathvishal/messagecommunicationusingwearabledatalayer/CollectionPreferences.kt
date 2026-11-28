@@ -120,7 +120,12 @@ internal class CollectionPreferences(context: Context) {
         prefs.edit().remove("server_history").commit()
     }
 
-    fun saveServer(url: String, org: String, activity: String, wearable: String, token: String): Boolean = synchronized(configLock) { runCatching {
+    fun saveServer(url: String, org: String, activity: String, wearable: String, token: String,
+                   hz: Int? = null, interval: Int? = null, sensors: Set<String>? = null): Boolean = synchronized(configLock) { runCatching {
+        val frequency = hz ?: this.hz
+        val seconds = interval ?: this.interval
+        val keys = sensors ?: this.sensors
+        require(validAcquisition(frequency, seconds) && validSensorSelection(keys))
         require(validServerUrl(url) && org.isNotBlank() && activity.isNotBlank() && wearable.isNotBlank() && activity != wearable)
         val target = ServerTarget(url, org, activity, wearable)
         val oldTarget = activeTarget().takeIf { custom }
@@ -140,6 +145,7 @@ internal class CollectionPreferences(context: Context) {
         prefs.edit().putBoolean("custom", true).putString("url", url).putString("org", org)
             .putString("activity", activity).putString("wearable", wearable).putString("token", encrypt(selected))
             .putString("server_history", encrypt(updated.toString()))
+            .putInt("hz", frequency).putInt("interval", seconds).putStringSet("sensors", keys.toSet())
             .putString("config_version", nextVersion()).commit()
     }.getOrDefault(false) }
     fun resetServer(): Boolean = synchronized(configLock) {
